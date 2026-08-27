@@ -256,9 +256,8 @@
     <div class="success-toast" id="successToast">✓ Сохранено</div>
 
     <script type="module">
-        // ДОБАВЛЕНО: update в список импортов
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getDatabase, ref, onValue, set, remove, update } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+        import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyC0UuTINZcyaJH4VUpGcu3r_DoP-K-q--I",
@@ -312,7 +311,6 @@
             return USER_COLORS[Object.keys(allUsers).length % USER_COLORS.length];
         }
 
-        // ===== FIREBASE LISTENERS =====
         if (firebaseReady) {
             onValue(ref(db, 'users'), (snapshot) => {
                 allUsers = snapshot.val() || {};
@@ -329,7 +327,6 @@
             });
         }
 
-        // ===== AUTH =====
         function showLoginError(msg) {
             const banner = document.getElementById('loginError');
             banner.textContent = msg;
@@ -434,7 +431,6 @@
             }
         });
 
-        // ===== NAVIGATION =====
         window.previousWeek = () => { currentDate.setDate(currentDate.getDate() - 7); generateCalendar(); };
         window.nextWeek = () => { currentDate.setDate(currentDate.getDate() + 7); generateCalendar(); };
         window.goToToday = () => { currentDate = new Date(); generateCalendar(); };
@@ -770,13 +766,16 @@
             saveBtn.textContent = 'Сохранение...';
 
             try {
-                const updates = {};
-                bookingsToSave.forEach(b => { updates['bookings/' + b.id] = b.data; });
-                if (selectedBookingId && bookingsToSave.length === 1 && bookingsToSave[0].id !== selectedBookingId) {
-                    updates['bookings/' + selectedBookingId] = null;
+                // ИСПРАВЛЕНИЕ: используем set для каждого бронирования отдельно
+                for (const b of bookingsToSave) {
+                    await set(ref(db, 'bookings/' + b.id), b.data);
                 }
-                // ИСПРАВЛЕНИЕ: используем update вместо set для корректной работы с путями, содержащими '/'
-                await update(ref(db), updates);
+                
+                // Удаляем старую запись если редактировали и ID изменился
+                if (selectedBookingId && bookingsToSave.length === 1 && bookingsToSave[0].id !== selectedBookingId) {
+                    await remove(ref(db, 'bookings/' + selectedBookingId));
+                }
+                
                 window.closeModal();
                 if (successCount > 0) showSuccess();
             } catch (error) {
