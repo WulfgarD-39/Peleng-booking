@@ -5,6 +5,7 @@
     <title>Календарь - Бронирование переговорной</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #f5f5f5; }
@@ -28,6 +29,7 @@
         .legend-color { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
         .legend-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .legend-you { font-size: 11px; color: #999; font-style: italic; }
+        .legend-delete { background: none; border: none; color: #f44336; cursor: pointer; font-size: 14px; padding: 2px 6px; }
         .main-content { flex: 1; display: flex; flex-direction: column; }
         .header { background: white; border-bottom: 1px solid #e0e0e0; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
         .header-left { display: flex; align-items: center; gap: 20px; }
@@ -41,8 +43,11 @@
         .user-info { display: flex; align-items: center; gap: 12px; }
         .user-badge { padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; color: white; display: flex; align-items: center; gap: 6px; }
         .user-badge .role-tag { font-size: 10px; background: rgba(255,255,255,0.3); padding: 2px 6px; border-radius: 3px; }
-        .logout-btn { padding: 6px 12px; background: #f44336; color: white; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; }
+        .logout-btn, .admin-btn { padding: 6px 12px; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; color: white; }
+        .logout-btn { background: #f44336; }
         .logout-btn:hover { background: #d32f2f; }
+        .admin-btn { background: #FF9800; }
+        .admin-btn:hover { background: #F57C00; }
         .calendar-wrapper { flex: 1; overflow-y: auto; background: white; }
         .calendar-grid { display: grid; grid-template-columns: 70px repeat(5, 1fr); grid-template-rows: auto 1fr; }
         .time-column { grid-row: 2; grid-column: 1; border-right: 1px solid #e0e0e0; }
@@ -77,7 +82,7 @@
         .repeat-day-checkbox { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
         .repeat-day-checkbox input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
         .repeat-day-checkbox span { font-size: 11px; color: #666; }
-        .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+        .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; flex-wrap: wrap; }
         .modal-actions button { padding: 10px 20px; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
         .btn-primary { background: #2196F3; color: white; }
         .btn-primary:hover { background: #1976D2; }
@@ -86,6 +91,8 @@
         .btn-secondary:hover { background: #e0e0e0; }
         .btn-danger { background: #f44336; color: white; }
         .btn-danger:hover { background: #d32f2f; }
+        .btn-warning { background: #FF9800; color: white; }
+        .btn-warning:hover { background: #F57C00; }
         .btn-link { background: none; border: none; color: #2196F3; cursor: pointer; font-size: 13px; padding: 0; text-decoration: underline; }
         .btn-link:hover { color: #1976D2; }
         .error-banner { background: #ffebee; color: #c62828; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; font-size: 13px; display: none; }
@@ -97,15 +104,25 @@
         .login-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); width: 90%; max-width: 400px; }
         .login-box h2 { margin-bottom: 8px; font-size: 24px; text-align: center; color: #333; }
         .login-box .subtitle { text-align: center; color: #666; font-size: 14px; margin-bottom: 24px; }
+        .login-box .private-notice { text-align: center; color: #FF9800; font-size: 12px; margin-bottom: 16px; padding: 8px; background: #FFF3E0; border-radius: 6px; }
         .login-form { display: none; }
         .login-form.active { display: block; }
         .admin-checkbox { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; color: #666; }
         .admin-checkbox input { width: 16px; height: 16px; cursor: pointer; }
         .switch-link { text-align: center; margin-top: 16px; font-size: 13px; color: #666; }
+        .invite-hint { font-size: 11px; color: #999; margin-top: 4px; }
         .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 4000; font-size: 18px; color: #666; gap: 15px; }
         .loading-overlay.hidden { display: none; }
         .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #2196F3; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .admin-panel-user { display: flex; align-items: center; justify-content: space-between; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 8px; }
+        .admin-panel-user-info { display: flex; align-items: center; gap: 10px; flex: 1; }
+        .admin-panel-user-name { font-weight: 500; }
+        .admin-panel-user-role { font-size: 11px; color: #999; }
+        .admin-section { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #e0e0e0; }
+        .admin-section:last-child { border-bottom: none; }
+        .admin-section h4 { font-size: 14px; margin-bottom: 12px; color: #333; }
+        .code-display { background: #f5f5f5; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 16px; text-align: center; letter-spacing: 2px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -118,6 +135,7 @@
         <div class="login-box">
             <h2>📅 Бронирование переговорной</h2>
             <p class="subtitle" id="loginSubtitle">Вход в систему</p>
+            <div class="private-notice"> Закрытая система. Доступ только по приглашению.</div>
             <div class="error-banner" id="loginError"></div>
 
             <div class="login-form active" id="loginForm">
@@ -131,7 +149,7 @@
                 </div>
                 <button class="btn-primary" style="width: 100%;" onclick="doLogin()">Войти</button>
                 <div class="switch-link">
-                    Нет аккаунта? <button class="btn-link" onclick="showRegister()">Зарегистрироваться</button>
+                    Есть код приглашения? <button class="btn-link" onclick="showRegister()">Зарегистрироваться</button>
                 </div>
             </div>
 
@@ -152,9 +170,14 @@
                     <label>Повторите пароль</label>
                     <input type="password" id="regPasswordConfirm" placeholder="Повторите пароль" autocomplete="new-password">
                 </div>
+                <div class="form-group">
+                    <label>Код приглашения *</label>
+                    <input type="text" id="regInviteCode" placeholder="Введите код от администратора" autocomplete="off">
+                    <div class="invite-hint">Код выдаёт администратор системы</div>
+                </div>
                 <label class="admin-checkbox" id="adminCheckboxWrap" style="display:none;">
                     <input type="checkbox" id="regIsAdmin">
-                    <span>Создать как администратора</span>
+                    <span>Создать как администратора (только для первого пользователя)</span>
                 </label>
                 <button class="btn-primary" style="width: 100%; margin-top: 16px;" onclick="doRegister()">Зарегистрироваться</button>
                 <div class="switch-link">
@@ -197,6 +220,7 @@
                 </div>
                 <div class="user-info">
                     <div class="user-badge" id="userBadge">Пользователь</div>
+                    <button class="admin-btn" id="adminPanelBtn" style="display:none;" onclick="openAdminPanel()">⚙ Админ</button>
                     <button class="logout-btn" onclick="logout()">Выйти</button>
                 </div>
             </div>
@@ -253,6 +277,33 @@
         </div>
     </div>
 
+    <!-- Админ-панель -->
+    <div class="modal-overlay" id="adminModalOverlay">
+        <div class="modal">
+            <h3>⚙ Панель администратора</h3>
+            <div class="error-banner" id="adminError"></div>
+
+            <div class="admin-section">
+                <h4>🔑 Код приглашения</h4>
+                <div class="code-display" id="currentInviteCode">—</div>
+                <div style="display:flex; gap:8px;">
+                    <input type="text" id="newInviteCode" placeholder="Новый код" style="flex:1; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
+                    <button class="btn-warning" onclick="changeInviteCode()">Сменить</button>
+                </div>
+                <div class="invite-hint" style="margin-top:8px;">Сообщите этот код новым сотрудникам для регистрации</div>
+            </div>
+
+            <div class="admin-section">
+                <h4>👥 Пользователи системы (<span id="usersCount">0</span>)</h4>
+                <div id="adminUsersList"></div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeAdminPanel()">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
     <div class="success-toast" id="successToast">✓ Сохранено</div>
 
     <script type="module">
@@ -289,6 +340,7 @@
 
         let allUsers = {};
         let allBookings = {};
+        let currentInviteCode = '';
         let currentUser = null;
         let currentDate = new Date();
         let miniCalendarDate = new Date();
@@ -314,7 +366,10 @@
         if (firebaseReady) {
             onValue(ref(db, 'users'), (snapshot) => {
                 allUsers = snapshot.val() || {};
-                if (currentUser) renderUsersLegend();
+                if (currentUser) {
+                    renderUsersLegend();
+                    updateAdminButton();
+                }
             });
 
             onValue(ref(db, 'bookings'), (snapshot) => {
@@ -325,10 +380,21 @@
                 console.error('DB read error:', error);
                 document.getElementById('loadingOverlay').innerHTML = '<div style="color:red; text-align:center;">Ошибка загрузки данных.<br>Проверьте Rules в Firebase Console.</div>';
             });
+
+            onValue(ref(db, 'settings/inviteCode'), (snapshot) => {
+                currentInviteCode = snapshot.val() || '';
+            });
         }
 
         function showLoginError(msg) {
             const banner = document.getElementById('loginError');
+            banner.textContent = msg;
+            banner.classList.add('visible');
+            setTimeout(() => banner.classList.remove('visible'), 4000);
+        }
+
+        function showAdminError(msg) {
+            const banner = document.getElementById('adminError');
             banner.textContent = msg;
             banner.classList.add('visible');
             setTimeout(() => banner.classList.remove('visible'), 4000);
@@ -344,7 +410,7 @@
         window.showRegister = function() {
             document.getElementById('loginForm').classList.remove('active');
             document.getElementById('registerForm').classList.add('active');
-            document.getElementById('loginSubtitle').textContent = 'Регистрация нового пользователя';
+            document.getElementById('loginSubtitle').textContent = 'Регистрация по приглашению';
             document.getElementById('loginError').classList.remove('visible');
             const usersCount = Object.keys(allUsers).length;
             document.getElementById('adminCheckboxWrap').style.display = usersCount === 0 ? 'flex' : 'none';
@@ -376,11 +442,22 @@
             const username = document.getElementById('regUsername').value.trim();
             const password = document.getElementById('regPassword').value;
             const passwordConfirm = document.getElementById('regPasswordConfirm').value;
+            const inviteCode = document.getElementById('regInviteCode').value.trim();
             const isAdmin = document.getElementById('regIsAdmin').checked;
 
             if (!name || !username || !password) { showLoginError('Заполните все поля'); return; }
             if (password !== passwordConfirm) { showLoginError('Пароли не совпадают'); return; }
             if (password.length < 4) { showLoginError('Пароль должен быть не менее 4 символов'); return; }
+
+            // Проверка кода приглашения
+            if (!inviteCode) {
+                showLoginError('Введите код приглашения');
+                return;
+            }
+            if (inviteCode !== currentInviteCode) {
+                showLoginError('Неверный код приглашения. Обратитесь к администратору.');
+                return;
+            }
 
             let loginTaken = false;
             Object.keys(allUsers).forEach(id => {
@@ -388,9 +465,13 @@
             });
             if (loginTaken) { showLoginError('Этот логин уже занят'); return; }
 
+            // Первый пользователь всегда админ, независимо от чекбокса
+            const usersCount = Object.keys(allUsers).length;
+            const finalRole = usersCount === 0 ? 'admin' : (isAdmin ? 'admin' : 'user');
+
             const userId = generateId();
             const userColor = assignUserColor();
-            const newUser = { name, username, password, role: isAdmin ? 'admin' : 'user', color: userColor };
+            const newUser = { name, username, password, role: finalRole, color: userColor };
 
             try {
                 await set(ref(db, 'users/' + userId), newUser);
@@ -408,8 +489,18 @@
             let badgeText = currentUser.name;
             if (currentUser.role === 'admin') badgeText += ' <span class="role-tag">Админ</span>';
             badge.innerHTML = badgeText;
+            updateAdminButton();
             generateCalendar();
             renderUsersLegend();
+        }
+
+        function updateAdminButton() {
+            const btn = document.getElementById('adminPanelBtn');
+            if (currentUser && currentUser.role === 'admin') {
+                btn.style.display = 'inline-block';
+            } else {
+                btn.style.display = 'none';
+            }
         }
 
         window.logout = function() {
@@ -421,16 +512,99 @@
             document.getElementById('regUsername').value = '';
             document.getElementById('regPassword').value = '';
             document.getElementById('regPasswordConfirm').value = '';
+            document.getElementById('regInviteCode').value = '';
             window.showLogin();
         };
+
+        // ===== АДМИН-ПАНЕЛЬ =====
+        window.openAdminPanel = function() {
+            if (!currentUser || currentUser.role !== 'admin') return;
+            document.getElementById('currentInviteCode').textContent = currentInviteCode || '—';
+            document.getElementById('newInviteCode').value = '';
+            document.getElementById('adminError').classList.remove('visible');
+            renderAdminUsersList();
+            document.getElementById('adminModalOverlay').classList.add('active');
+        };
+
+        window.closeAdminPanel = function() {
+            document.getElementById('adminModalOverlay').classList.remove('active');
+        };
+
+        window.changeInviteCode = async function() {
+            const newCode = document.getElementById('newInviteCode').value.trim();
+            if (!newCode) {
+                showAdminError('Введите новый код');
+                return;
+            }
+            if (newCode.length < 4) {
+                showAdminError('Код должен быть не менее 4 символов');
+                return;
+            }
+            try {
+                await set(ref(db, 'settings/inviteCode'), newCode);
+                showAdminError('');
+                document.getElementById('newInviteCode').value = '';
+                alert('Код приглашения изменён на: ' + newCode);
+            } catch (error) {
+                showAdminError('Ошибка смены кода: ' + error.message);
+            }
+        };
+
+        window.deleteUser = async function(userId) {
+            if (userId === currentUser.id) {
+                showAdminError('Нельзя удалить самого себя');
+                return;
+            }
+            const user = allUsers[userId];
+            if (!confirm('Удалить пользователя "' + user.name + '"? Все его бронирования останутся в системе.')) return;
+            try {
+                await remove(ref(db, 'users/' + userId));
+                showAdminError('');
+            } catch (error) {
+                showAdminError('Ошибка удаления: ' + error.message);
+            }
+        };
+
+        function renderAdminUsersList() {
+            const list = document.getElementById('adminUsersList');
+            const countEl = document.getElementById('usersCount');
+            list.innerHTML = '';
+            const users = Object.keys(allUsers);
+            countEl.textContent = users.length;
+
+            if (users.length === 0) {
+                list.innerHTML = '<div style="color:#999; text-align:center; padding:20px;">Нет пользователей</div>';
+                return;
+            }
+
+            users.forEach(userId => {
+                const user = allUsers[userId];
+                const div = document.createElement('div');
+                div.className = 'admin-panel-user';
+                div.innerHTML =
+                    '<div class="admin-panel-user-info">' +
+                        '<div class="legend-color" style="background-color: ' + (user.color || '#999') + ';"></div>' +
+                        '<div>' +
+                            '<div class="admin-panel-user-name">' + user.name + (userId === currentUser.id ? ' (вы)' : '') + '</div>' +
+                            '<div class="admin-panel-user-role">@' + user.username + (user.role === 'admin' ? ' • Админ' : '') + '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    (userId !== currentUser.id ? '<button class="legend-delete" onclick="deleteUser(\'' + userId + '\')" title="Удалить">🗑</button>' : '');
+                list.appendChild(div);
+            });
+        }
 
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !document.getElementById('loginScreen').classList.contains('hidden')) {
                 if (document.getElementById('loginForm').classList.contains('active')) window.doLogin();
                 else if (document.getElementById('registerForm').classList.contains('active')) window.doRegister();
             }
+            if (e.key === 'Escape') {
+                if (document.getElementById('adminModalOverlay').classList.contains('active')) window.closeAdminPanel();
+            }
         });
 
+        // ===== НАВИГАЦИЯ КАЛЕНДАРЯ =====
         window.previousWeek = () => { currentDate.setDate(currentDate.getDate() - 7); generateCalendar(); };
         window.nextWeek = () => { currentDate.setDate(currentDate.getDate() + 7); generateCalendar(); };
         window.goToToday = () => { currentDate = new Date(); generateCalendar(); };
@@ -766,16 +940,12 @@
             saveBtn.textContent = 'Сохранение...';
 
             try {
-                // ИСПРАВЛЕНИЕ: используем set для каждого бронирования отдельно
                 for (const b of bookingsToSave) {
                     await set(ref(db, 'bookings/' + b.id), b.data);
                 }
-                
-                // Удаляем старую запись если редактировали и ID изменился
                 if (selectedBookingId && bookingsToSave.length === 1 && bookingsToSave[0].id !== selectedBookingId) {
                     await remove(ref(db, 'bookings/' + selectedBookingId));
                 }
-                
                 window.closeModal();
                 if (successCount > 0) showSuccess();
             } catch (error) {
@@ -812,8 +982,15 @@
             if (e.target === document.getElementById('modalOverlay')) window.closeModal();
         });
 
+        document.getElementById('adminModalOverlay').addEventListener('click', function(e) {
+            if (e.target === document.getElementById('adminModalOverlay')) window.closeAdminPanel();
+        });
+
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') window.closeModal();
+            if (e.key === 'Escape') {
+                window.closeModal();
+                window.closeAdminPanel();
+            }
         });
 
         if (firebaseReady) {
